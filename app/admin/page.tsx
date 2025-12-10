@@ -253,7 +253,7 @@ const handleLogout = async () => {
           <SidebarItem
             label="Mesa Directiva"
             icon="M"
-            onClick={() => router.push("/admin/mesa-directiva")}
+            onClick={() => router.push("/admin/mesa_directiva")}
           />
           <SidebarItem
             label="Pagos"
@@ -462,7 +462,7 @@ const handleLogout = async () => {
                 <QuickActionRow
                   title="Mesa Directiva"
                   description="Ver miembros y sus cargos"
-                  onClick={() => router.push("/admin/mesa-directiva")}
+                  onClick={() => router.push("/admin/mesa_directiva")}
                 />
                 <QuickActionRow
                   title="Pagos"

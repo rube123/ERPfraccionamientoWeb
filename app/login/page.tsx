@@ -47,6 +47,8 @@ export default function LoginPage() {
       }
 
       const data: LoginResponse = await res.json();
+      window.localStorage.setItem("session", JSON.stringify(data));
+
 
       if (typeof window !== "undefined") {
         localStorage.setItem("fracc_user", JSON.stringify(data));
@@ -102,6 +104,7 @@ export default function LoginPage() {
       }
 
       const data: LoginResponse = await res.json();
+window.localStorage.setItem("session", JSON.stringify(data));
 
       if (typeof window !== "undefined") {
         localStorage.setItem("fracc_user", JSON.stringify(data));
