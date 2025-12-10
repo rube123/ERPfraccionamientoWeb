@@ -1,8 +1,7 @@
-// app/dashboard/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
 
@@ -128,6 +127,7 @@ function isSameMonth(dateStr: string, ref: Date) {
 
 export default function BoardDashboardPage() {
   const router = useRouter();
+  const pathname = usePathname();
 
   const [user, setUser] = useState<StoredUser | null>(null);
   const [dashboard, setDashboard] = useState<DashboardMesaResp | null>(null);
@@ -135,6 +135,7 @@ export default function BoardDashboardPage() {
   const [avisosEsteMes, setAvisosEsteMes] = useState<AvisoRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Proteger ruta (solo mesa_directiva)
   useEffect(() => {
@@ -166,9 +167,7 @@ export default function BoardDashboardPage() {
           throw new Error("Error cargando dashboard de mesa directiva.");
         }
         if (!pagosMantRes.ok) {
-          throw new Error(
-            "Error cargando pagos de mantenimiento."
-          );
+          throw new Error("Error cargando pagos de mantenimiento.");
         }
         if (!avisosRes.ok) {
           throw new Error("Error cargando avisos.");
@@ -257,254 +256,265 @@ export default function BoardDashboardPage() {
     );
   }
 
+  // Items del menú lateral
+  const navItems = [
+    { label: "Dashboard", path: "/mesa_directiva" },
+    { label: "Residentes", path: "/mesa_directiva/residentes" },
+    { label: "Administración de pagos", path: "/mesa_directiva/pagos" },
+    { label: "Áreas comunes", path: "/mesa_directiva/areas" },
+    { label: "Avisos", path: "/mesa_directiva/avisos" },
+  ];
+
+  const handleNav = (path: string) => {
+    router.push(path);
+    setSidebarOpen(false);
+  };
+
+  const isActivePath = (path: string) => {
+    if (!pathname) return false;
+
+    if (path === "/mesa_directiva") {
+      return pathname === "/mesa_directiva";
+    }
+
+    // Subrutas: /admin/mesa_directiva/residentes, /pagos, etc.
+    return pathname.startsWith(path);
+  };
+
   return (
-    <main className="min-h-screen bg-slate-100 text-slate-900">
-      {/* Barra superior */}
-      <header className="bg-white border-b border-slate-200">
-        <div className="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="h-7 w-7 rounded-lg bg-sky-500 flex items-center justify-center text-xs font-bold text-white">
-              M
-            </div>
+    <div className="min-h-screen bg-slate-100 text-slate-900 flex">
+      {/* Overlay móviles */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 z-20 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-30 w-64 bg-white border-r border-slate-200 transform transition-transform duration-200 md:static md:translate-x-0 ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+        }`}
+      >
+        <div className="h-16 px-5 flex items-center border-b border-slate-100 gap-2">
+          <div className="h-8 w-8 rounded-lg bg-sky-500 flex items-center justify-center text-xs font-bold text-white">
+            M
+          </div>
+          <div className="flex flex-col">
             <span className="text-sm font-semibold text-slate-800">
               Mesa Directiva
-              <span className="text-sky-500 ml-1">Dashboard</span>
+            </span>
+            <span className="text-[11px] text-sky-500 font-medium">
+              Panel administrativo
             </span>
           </div>
+        </div>
 
-          {/* Navegación y acciones */}
-          <nav className="hidden md:flex items-center gap-4 text-sm text-slate-500">
-            <button
-              className="font-medium text-sky-600"
-              onClick={() => router.push("/dashboard")}
-            >
-              Dashboard
-            </button>
-            <button onClick={() => router.push("/dashboard/residentes")}>
-              Residentes
-            </button>
-            <button onClick={() => router.push("/dashboard/pagos")}>
-              Administración de pagos
-            </button>
-            <button onClick={() => router.push("/dashboard/areas")}>
-              Áreas comunes
-            </button>
-            <button onClick={() => router.push("/dashboard/avisos")}>
-              Avisos
-            </button>
-          </nav>
+        <nav className="mt-4 px-3 space-y-1 text-sm">
+          {navItems.map((item) => {
+            const active = isActivePath(item.path);
+            return (
+              <button
+                key={item.path}
+                type="button"
+                onClick={() => handleNav(item.path)}
+                className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg font-medium text-left transition ${
+                  active
+                    ? "bg-sky-50 text-sky-700 border border-sky-200"
+                    : "text-slate-600 hover:bg-slate-50"
+                }`}
+              >
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+      </aside>
 
-          <div className="flex items-center gap-4">
-            {/* Logout */}
-            <button
-              onClick={handleLogout}
-              className="hidden sm:inline-flex text-xs font-semibold text-red-600 border border-red-200 rounded-full px-3 py-1 bg-red-50 hover:bg-red-100"
-            >
-              Cerrar sesión
-            </button>
+      {/* Contenedor principal */}
+      <div className="flex-1 flex flex-col min-h-screen">
+        {/* Barra superior */}
+        <header className="bg-white border-b border-slate-200">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
+            {/* Botón menú móvil + título */}
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                className="md:hidden inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600"
+                onClick={() => setSidebarOpen((prev) => !prev)}
+              >
+                <span className="sr-only">Abrir menú</span>
+                {/* icono hamburguesa simple */}
+                <div className="space-y-1">
+                  <span className="block h-0.5 w-4 bg-current" />
+                  <span className="block h-0.5 w-4 bg-current" />
+                  <span className="block h-0.5 w-4 bg-current" />
+                </div>
+              </button>
 
-            {/* "Foto" de perfil */}
-            <div className="flex items-center gap-2">
-              <div className="hidden sm:flex flex-col items-end">
-                <span className="text-xs font-semibold max-w-[150px] truncate">
-                  {displayName}
+              <div className="flex flex-col">
+                <span className="text-sm font-semibold text-slate-800">
+                  Mesa Directiva
+                  <span className="text-sky-500 ml-1">Dashboard</span>
                 </span>
-                <span className="text-[11px] text-slate-500 max-w-[150px] truncate">
-                  {displayEmail}
+                <span className="text-[11px] text-slate-500">
+                  Resumen general del fraccionamiento
                 </span>
               </div>
-              <div className="h-8 w-8 rounded-full bg-slate-300 flex items-center justify-center text-xs font-semibold text-white">
-                {avatarLetter}
+            </div>
+
+            {/* Perfil + logout */}
+            <div className="flex items-center gap-4">
+              <button
+                onClick={handleLogout}
+                className="hidden sm:inline-flex text-xs font-semibold text-red-600 border border-red-200 rounded-full px-3 py-1 bg-red-50 hover:bg-red-100"
+              >
+                Cerrar sesión
+              </button>
+
+              <div className="flex items-center gap-2">
+                <div className="hidden sm:flex flex-col items-end">
+                  <span className="text-xs font-semibold max-w-[150px] truncate">
+                    {displayName}
+                  </span>
+                  <span className="text-[11px] text-slate-500 max-w-[150px] truncate">
+                    {displayEmail}
+                  </span>
+                </div>
+                <div className="h-8 w-8 rounded-full bg-slate-300 flex items-center justify-center text-xs font-semibold text-white">
+                  {avatarLetter}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* Contenido principal */}
-      <div className="max-w-6xl mx-auto px-6 py-8 space-y-8">
-        {/* Header secundario con logout (para móvil) */}
-        <div className="flex items-center justify-between sm:hidden">
-          <h1 className="text-xl font-semibold">Dashboard</h1>
-          <button
-            onClick={handleLogout}
-            className="text-[11px] font-semibold text-red-600 border border-red-200 rounded-full px-3 py-1 bg-red-50 hover:bg-red-100"
-          >
-            Cerrar sesión
-          </button>
-        </div>
-
-        {/* Tarjetas superiores dinámicas */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <StatCard
-            title="Mantenimiento cobrado (mes actual)"
-            value={formatCurrency(totalMantenimientoMes.toString())}
-            subtitle={`${pagosMantEsteMes.length} pago(s) de mantenimiento`}
-          />
-          <StatCard
-            title="Reservas de áreas (mes actual)"
-            value={reservasMes.length.toString()}
-            subtitle="Reservas registradas este mes"
-          />
-          <StatCard
-            title="Avisos registrados (mes actual)"
-            value={avisosEsteMes.length.toString()}
-            subtitle="Avisos enviados a la comunidad"
-          />
-        </section>
-
-        {/* Avisos + Acciones rápidas */}
-        <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Avisos registrados este mes */}
-          <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 px-6 py-5 shadow-sm">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-semibold text-slate-800">
-                Avisos registrados este mes
-              </p>
+        {/* Contenido principal */}
+        <main className="flex-1">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+            {/* Header secundario con logout (para móvil) */}
+            <div className="flex items-center justify-between sm:hidden">
+              <h1 className="text-xl font-semibold">Dashboard</h1>
               <button
-                className="text-xs font-semibold text-sky-600"
-                onClick={() => router.push("/dashboard/avisos")}
+                onClick={handleLogout}
+                className="text-[11px] font-semibold text-red-600 border border-red-200 rounded-full px-3 py-1 bg-red-50 hover:bg-red-100"
               >
-                Ver todos los avisos
+                Cerrar sesión
               </button>
             </div>
 
-            {avisosEsteMes.length === 0 ? (
-              <p className="text-xs text-slate-500">
-                No se han registrado avisos este mes.
-              </p>
-            ) : (
-              <div className="space-y-3 text-sm">
-                {avisosEsteMes.slice(0, 8).map((a) => (
-                  <AnnouncementItem
-                    key={a.id_aviso}
-                    title={a.titulo}
-                    date={formatDateTime(a.creado_en)}
-                    emisor={a.nombre_emisor ?? "Mesa Directiva"}
-                  />
-                ))}
+            {/* Tarjetas superiores dinámicas */}
+            <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <StatCard
+                title="Mantenimiento cobrado (mes actual)"
+                value={formatCurrency(totalMantenimientoMes.toString())}
+                subtitle={`${pagosMantEsteMes.length} pago(s) de mantenimiento`}
+              />
+              <StatCard
+                title="Reservas de áreas (mes actual)"
+                value={reservasMes.length.toString()}
+                subtitle="Reservas registradas este mes"
+              />
+              <StatCard
+                title="Avisos registrados (mes actual)"
+                value={avisosEsteMes.length.toString()}
+                subtitle="Avisos enviados a la comunidad"
+              />
+            </section>
+
+            
+
+            {/* Reservas + Pagos de mantenimiento */}
+            <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Reservas de áreas */}
+              <div className="bg-white rounded-2xl border border-slate-200 px-6 py-5 shadow-sm">
+                <h2 className="text-sm font-semibold text-slate-800 mb-3">
+                  Reservas de áreas
+                </h2>
+                {reservas.length === 0 ? (
+                  <p className="text-xs text-slate-500">
+                    No hay reservas registradas todavía.
+                  </p>
+                ) : (
+                  <ul className="divide-y divide-slate-100 text-sm">
+                    {reservas.slice(0, 8).map((r) => (
+                      <li
+                        key={r.no_reserva}
+                        className="py-2.5 flex items-center justify-between"
+                      >
+                        <div>
+                          <p className="font-medium">{r.area_nombre}</p>
+                          <p className="text-xs text-slate-500">
+                            {formatReservaLinea(r)}
+                          </p>
+                        </div>
+                        <span className="text-[11px] px-2 py-1 rounded-full border text-slate-600">
+                          {r.estado}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <button
+                  className="mt-4 w-full rounded-xl border border-sky-300 text-sky-600 text-sm font-semibold py-2"
+                  onClick={() => router.push("/mesa_directiva/areas")}
+                >
+                  Gestionar reservas
+                </button>
               </div>
-            )}
-          </div>
 
-          {/* Acciones rápidas hacia otras vistas */}
-          <div className="space-y-4">
-            <h2 className="text-sm font-semibold text-slate-800">
-              Acciones rápidas
-            </h2>
-            <div className="bg-white rounded-2xl border border-slate-200 px-5 py-4 shadow-sm space-y-3 text-sm">
-              <QuickActionButton
-                label="Ver residentes"
-                description="Listado y datos de los residentes"
-                onClick={() => router.push("/dashboard/residentes")}
-              />
-              <QuickActionButton
-                label="Administrar pagos"
-                description="Historial y control de pagos"
-                onClick={() => router.push("/dashboard/pagos")}
-              />
-              <QuickActionButton
-                label="Áreas comunes"
-                description="Estado y reservas de las áreas"
-                onClick={() => router.push("/dashboard/areas")}
-              />
-              <QuickActionButton
-                label="Ver avisos"
-                description="Historial de avisos enviados"
-                onClick={() => router.push("/dashboard/avisos")}
-              />
-            </div>
+              {/* Pagos de mantenimiento */}
+              <div className="bg-white rounded-2xl border border-slate-200 px-6 py-5 shadow-sm">
+                <h2 className="text-sm font-semibold text-slate-800 mb-3">
+                  Pagos de mantenimiento
+                </h2>
+                {pagosMantenimiento.length === 0 ? (
+                  <p className="text-xs text-slate-500">
+                    Aún no hay pagos de mantenimiento registrados.
+                  </p>
+                ) : (
+                  <ul className="divide-y divide-slate-100 text-sm">
+                    {pagosMantenimiento.slice(0, 8).map((p) => (
+                      <li
+                        key={p.no_transaccion}
+                        className="py-2.5 flex items-center justify-between"
+                      >
+                        <div>
+                          <p className="font-medium">
+                            {formatCurrency(p.total)}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            {formatDateTime(p.fecha_transaccion)}
+                          </p>
+                        </div>
+                        <span
+                          className={`text-[11px] px-2 py-1 rounded-full border ${
+                            p.estado.toLowerCase() === "pagado"
+                              ? "text-emerald-700 border-emerald-200 bg-emerald-50"
+                              : p.estado.toLowerCase() === "pendiente"
+                              ? "text-amber-700 border-amber-200 bg-amber-50"
+                              : "text-slate-600 border-slate-200"
+                          }`}
+                        >
+                          {p.estado}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <button
+                  className="mt-4 w-full rounded-xl border border-sky-300 text-sky-600 text-sm font-semibold py-2"
+                  onClick={() => router.push("/mesa_directiva/pagos")}
+                >
+                  Ver administración de pagos
+                </button>
+              </div>
+            </section>
           </div>
-        </section>
-
-        {/* Reservas + Pagos de mantenimiento */}
-        <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Reservas de áreas */}
-          <div className="bg-white rounded-2xl border border-slate-200 px-6 py-5 shadow-sm">
-            <h2 className="text-sm font-semibold text-slate-800 mb-3">
-              Reservas de áreas
-            </h2>
-            {reservas.length === 0 ? (
-              <p className="text-xs text-slate-500">
-                No hay reservas registradas todavía.
-              </p>
-            ) : (
-              <ul className="divide-y divide-slate-100 text-sm">
-                {reservas.slice(0, 8).map((r) => (
-                  <li
-                    key={r.no_reserva}
-                    className="py-2.5 flex items-center justify-between"
-                  >
-                    <div>
-                      <p className="font-medium">{r.area_nombre}</p>
-                      <p className="text-xs text-slate-500">
-                        {formatReservaLinea(r)}
-                      </p>
-                    </div>
-                    <span className="text-[11px] px-2 py-1 rounded-full border text-slate-600">
-                      {r.estado}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <button
-              className="mt-4 w-full rounded-xl border border-sky-300 text-sky-600 text-sm font-semibold py-2"
-              onClick={() => router.push("/dashboard/areas")}
-            >
-              Gestionar reservas
-            </button>
-          </div>
-
-          {/* Pagos de mantenimiento */}
-          <div className="bg-white rounded-2xl border border-slate-200 px-6 py-5 shadow-sm">
-            <h2 className="text-sm font-semibold text-slate-800 mb-3">
-              Pagos de mantenimiento
-            </h2>
-            {pagosMantenimiento.length === 0 ? (
-              <p className="text-xs text-slate-500">
-                Aún no hay pagos de mantenimiento registrados.
-              </p>
-            ) : (
-              <ul className="divide-y divide-slate-100 text-sm">
-                {pagosMantenimiento.slice(0, 8).map((p) => (
-                  <li
-                    key={p.no_transaccion}
-                    className="py-2.5 flex items-center justify-between"
-                  >
-                    <div>
-                      <p className="font-medium">
-                        {formatCurrency(p.total)}
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        {formatDateTime(p.fecha_transaccion)}
-                      </p>
-                    </div>
-                    <span
-                      className={`text-[11px] px-2 py-1 rounded-full border ${
-                        p.estado.toLowerCase() === "pagado"
-                          ? "text-emerald-700 border-emerald-200 bg-emerald-50"
-                          : p.estado.toLowerCase() === "pendiente"
-                          ? "text-amber-700 border-amber-200 bg-amber-50"
-                          : "text-slate-600 border-slate-200"
-                      }`}
-                    >
-                      {p.estado}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <button
-              className="mt-4 w-full rounded-xl border border-sky-300 text-sky-600 text-sm font-semibold py-2"
-              onClick={() => router.push("/dashboard/pagos")}
-            >
-              Ver administración de pagos
-            </button>
-          </div>
-        </section>
+        </main>
       </div>
-    </main>
+    </div>
   );
 }
 
