@@ -57,7 +57,7 @@ export default function LoginPage() {
       if (rolesLower.includes("admin")) {
         router.push("/admin");
       } else if (rolesLower.includes("mesa_directiva")) {
-        router.push("/mesa-directiva");
+        router.push("/mesa_directiva");
       } else if (rolesLower.includes("residente")) {
         router.push("/residente");
       } else {

@@ -21,21 +21,21 @@ type Reserva = {
   cve_area: number;
   area_nombre: string;
   id_persona_solicitante: number;
-  fecha_reserva: string; // "2025-12-01"
-  hora_inicio: string;   // "18:00:00"
-  hora_fin: string;      // "20:00:00"
+  fecha_reserva: string;
+  hora_inicio: string;
+  hora_fin: string;
   estado: string;
   id_usuario_registro: number;
 };
 
 type Pago = {
   no_transaccion: number;
-  fecha_transaccion: string; // "2025-12-01T18:00:00"
+  fecha_transaccion: string;
   id_persona: number;
   id_usuario_registro: number;
   id_tipo_cuota: number;
   cve_tipo_pago: number;
-  total: string; // numeric -> string
+  total: string;
   estado: string;
 };
 
@@ -72,6 +72,11 @@ function readStoredUser(): StoredUser | null {
   } catch {
     return null;
   }
+}
+
+function clearStoredUser() {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem("fracc_user");
 }
 
 function formatCurrency(totalStr: string) {
@@ -118,7 +123,7 @@ export default function ResidentDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Leer usuario del localStorage y redirigir si no está logueado
+  // leer usuario
   useEffect(() => {
     const u = readStoredUser();
     if (!u) {
@@ -128,7 +133,7 @@ export default function ResidentDashboardPage() {
     setUser(u);
   }, [router]);
 
-  // Cargar datos del residente desde tu API
+  // cargar datos del residente
   useEffect(() => {
     if (!user) return;
 
@@ -163,6 +168,11 @@ export default function ResidentDashboardPage() {
 
     load();
   }, [user]);
+
+  const handleLogout = () => {
+    clearStoredUser();
+    router.push("/login");
+  };
 
   const displayName =
     inicio?.nombre ??
@@ -229,8 +239,8 @@ export default function ResidentDashboardPage() {
             </span>
           </div>
 
-          <div className="flex items-center gap-4">
-            {/* Botón para ir a avisos */}
+          <div className="flex items-center gap-3">
+            {/* botón avisos */}
             <button
               className="h-8 px-3 rounded-full bg-slate-100 border border-slate-200 text-xs flex items-center gap-1"
               onClick={() => router.push("/residente/avisos")}
@@ -239,7 +249,15 @@ export default function ResidentDashboardPage() {
               <span>Mis avisos</span>
             </button>
 
-            {/* Foto de perfil (avatar con inicial) */}
+            {/* logout */}
+            <button
+              className="h-8 px-3 rounded-full bg-red-50 border border-red-200 text-[11px] font-semibold text-red-600 hover:bg-red-100"
+              onClick={handleLogout}
+            >
+              Cerrar sesión
+            </button>
+
+            {/* avatar */}
             <div className="h-8 w-8 rounded-full bg-sky-500 text-white text-xs font-semibold flex items-center justify-center">
               {avatarLetter}
             </div>
@@ -288,7 +306,7 @@ export default function ResidentDashboardPage() {
           </div>
         </section>
 
-        {/* Estado de cuenta + Anuncios */}
+        {/* Estado de cuenta + Avisos */}
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Columna izquierda */}
           <div className="lg:col-span-2 space-y-6">
@@ -306,7 +324,7 @@ export default function ResidentDashboardPage() {
                   {pagoMasReciente ? (
                     <>
                       <p className="text-2xl font-semibold">
-                        {formatCurrency(pagoMasReciente.total)}{" "}
+                        {formatCurrency(pagoMasReciente.total)}
                       </p>
                       <p className="mt-2 text-xs text-slate-500">
                         {formatPagoFecha(pagoMasReciente.fecha_transaccion)}
