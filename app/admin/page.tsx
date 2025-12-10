@@ -17,7 +17,15 @@ type StoredUser = {
   nombre_completo: string;
   roles: string[];
 };
-
+type PersonaRow = {
+  id_persona: number;
+  nombre: string;
+  primer_apellido: string;
+  segundo_apellido: string | null;
+  correo: string;
+  telefono: string | null;
+  no_residencia: string | null;
+};
 type ReservaConAreaRow = {
   no_reserva: number;
   cve_area: number;
@@ -136,6 +144,9 @@ export default function DashboardPage() {
   const [dashboard, setDashboard] = useState<DashboardAdminResp | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  const [personasCount, setPersonasCount] = useState<number | null>(null);
+const [pagosTodos, setPagosTodos] = useState<PagoRow[]>([]);
 
   // Proteger ruta (solo admin)
   useEffect(() => {
@@ -148,31 +159,51 @@ export default function DashboardPage() {
   }, [router]);
 
   // Cargar datos del dashboard
-  useEffect(() => {
-    if (!user) return;
+// Cargar datos del dashboard
+useEffect(() => {
+  if (!user) return;
 
-    const load = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await fetch(`${API_BASE}/dashboard/admin`);
-        if (!res.ok) {
-          throw new Error("Error cargando dashboard de administrador.");
-        }
-        const data: DashboardAdminResp = await res.json();
-        setDashboard(data);
-      } catch (e: any) {
-        console.error(e);
-        setError(
-          e?.message ?? "No se pudo cargar la información del administrador."
-        );
-      } finally {
-        setLoading(false);
+  const load = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      // 1) Dashboard admin
+      // 2) Todas las personas (para contar residentes)
+      // 3) Todos los pagos (para sumar ingresos)
+      const [dashboardRes, personasRes, pagosRes] = await Promise.all([
+        fetch(`${API_BASE}/dashboard/admin`),
+        fetch(`${API_BASE}/personas`),
+        fetch(`${API_BASE}/pagos/historial_todos`),
+      ]);
+
+      if (!dashboardRes.ok) {
+        throw new Error("Error cargando dashboard de administrador.");
       }
-    };
+      if (!personasRes.ok) {
+        throw new Error("Error cargando personas.");
+      }
+      if (!pagosRes.ok) {
+        throw new Error("Error cargando pagos.");
+      }
 
-    load();
-  }, [user]);
+      const dashboardData: DashboardAdminResp = await dashboardRes.json();
+      const personasData: PersonaRow[] = await personasRes.json();
+      const pagosData: PagoRow[] = await pagosRes.json();
+
+      setDashboard(dashboardData);
+      setPersonasCount(personasData.length);
+      setPagosTodos(pagosData);
+    } catch (e: any) {
+      console.error(e);
+      setError(e?.message ?? "No se pudo cargar la información del administrador.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  load();
+}, [user]);
+
 const handleLogout = async () => {
   try {
     clearStoredUser();
@@ -192,6 +223,80 @@ const handleLogout = async () => {
   const reservas = dashboard?.reservas ?? [];
   const pagos = dashboard?.pagos ?? [];
   const avisosPorMes = dashboard?.avisos_por_mes ?? [];
+  // ====== Stats para las tarjetas resumen ======
+  const totalResidentes = personasCount ?? 0;
+
+  const hoy = new Date();
+  const mesActual = hoy.getMonth(); // 0-11
+  const anioActual = hoy.getFullYear();
+
+  // Solo pagos "pagado"
+  const pagosPagados = pagosTodos.filter(
+    (p) => p.estado.toLowerCase() === "pagado"
+  );
+
+  // Ingresos del mes actual
+  const pagosMesActual = pagosPagados.filter((p) => {
+    const d = new Date(p.fecha_transaccion);
+    return (
+      !isNaN(d.getTime()) &&
+      d.getMonth() === mesActual &&
+      d.getFullYear() === anioActual
+    );
+  });
+
+  const ingresosMesActualNumber = pagosMesActual.reduce(
+    (acc, p) => acc + (Number(p.total) || 0),
+    0
+  );
+
+  const ingresosMes = formatCurrency(ingresosMesActualNumber.toString());
+
+  // Comparación con el mes anterior
+  const fechaMesAnterior = new Date(anioActual, mesActual - 1, 1);
+  const mesAnterior = fechaMesAnterior.getMonth();
+  const anioMesAnterior = fechaMesAnterior.getFullYear();
+
+  const pagosMesAnterior = pagosPagados.filter((p) => {
+    const d = new Date(p.fecha_transaccion);
+    return (
+      !isNaN(d.getTime()) &&
+      d.getMonth() === mesAnterior &&
+      d.getFullYear() === anioMesAnterior
+    );
+  });
+
+  const ingresosMesAnteriorNumber = pagosMesAnterior.reduce(
+    (acc, p) => acc + (Number(p.total) || 0),
+    0
+  );
+
+  let variacionIngresos = "Sin datos del mes anterior";
+  let variacionIngresosClass = "text-slate-500";
+
+  if (ingresosMesAnteriorNumber > 0) {
+    const diff = ingresosMesActualNumber - ingresosMesAnteriorNumber;
+    const pct = (diff / ingresosMesAnteriorNumber) * 100;
+    const signo = pct >= 0 ? "+" : "";
+    variacionIngresos = `${signo}${pct.toFixed(1)}% vs mes anterior`;
+    variacionIngresosClass = pct >= 0 ? "text-emerald-600" : "text-rose-600";
+  }
+
+  // Gastos del mes (estimado simple: 40% de los ingresos del mes)
+  const gastosMesNumber = ingresosMesActualNumber * 0.4;
+  const gastosMes = formatCurrency(gastosMesNumber.toFixed(2));
+  const variacionGastosClass = "text-rose-600";
+
+  // Saldo actual = total histórico cobrado (todos los pagos pagados)
+  const saldoActualNumber = pagosPagados.reduce(
+    (acc, p) => acc + (Number(p.total) || 0),
+    0
+  );
+  const saldoActual = formatCurrency(saldoActualNumber.toString());
+  const saldoActualSubtitle =
+    saldoActualNumber > 0
+      ? "Total histórico cobrado"
+      : "Aún no hay pagos registrados";
 
   if (loading || !user) {
     return (
@@ -322,29 +427,30 @@ const handleLogout = async () => {
         <section className="mt-6 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           <SummaryCard
             title="Total de Residentes"
-            value="452"
-            subtitle="+12 este mes"
+            value={totalResidentes.toString()}
+            subtitle="Residentes registrados en el sistema"
             subtitleClass="text-emerald-600"
           />
           <SummaryCard
             title="Ingresos del Mes"
-            value="$150,000"
-            subtitle="+5.2% vs mes anterior"
-            subtitleClass="text-emerald-600"
+            value={ingresosMes}
+            subtitle={variacionIngresos}
+            subtitleClass={variacionIngresosClass}
           />
           <SummaryCard
             title="Gastos del Mes"
-            value="$85,000"
-            subtitle="-1.8% vs mes anterior"
-            subtitleClass="text-rose-600"
+            value={gastosMes}
+            subtitle="Estimado 40% de los ingresos del mes"
+            subtitleClass={variacionGastosClass}
           />
           <SummaryCard
             title="Saldo Actual"
-            value="$65,000"
-            subtitle="Balance positivo"
+            value={saldoActual}
+            subtitle={saldoActualSubtitle}
             subtitleClass="text-slate-500"
           />
         </section>
+
 
         {/* Actividad reciente + gráfica + gestión */}
         <section className="mt-10 grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">

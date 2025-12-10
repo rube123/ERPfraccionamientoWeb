@@ -241,13 +241,13 @@ export default function ResidentDashboardPage() {
 
           <div className="flex items-center gap-3">
             {/* botón avisos */}
-            <button
+            {/* <button
               className="h-8 px-3 rounded-full bg-slate-100 border border-slate-200 text-xs flex items-center gap-1"
-              onClick={() => router.push("/residente/avisos")}
+              //onClick={() => router.push("/residente/avisos")}
             >
               🔔
               <span>Mis avisos</span>
-            </button>
+            </button> */}
 
             {/* logout */}
             <button
@@ -278,16 +278,12 @@ export default function ResidentDashboardPage() {
         </section>
 
         {/* Accesos rápidos */}
-        <section className="space-y-3">
+        {/* <section className="space-y-3">
           <h2 className="text-sm font-semibold text-slate-800">
             Accesos Rápidos
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <QuickActionCard
-              title="Registrar Visita"
-              description="Permite el acceso a tus invitados"
-              onClick={() => router.push("/residente/visitas")}
-            />
+
             <QuickActionCard
               title="Reservar Área"
               description="Agenda el uso de espacios comunes"
@@ -304,7 +300,7 @@ export default function ResidentDashboardPage() {
               onClick={() => router.push("/residente/reservas")}
             />
           </div>
-        </section>
+        </section> */}
 
         {/* Estado de cuenta + Avisos */}
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -338,12 +334,12 @@ export default function ResidentDashboardPage() {
                       Aún no tienes pagos registrados.
                     </p>
                   )}
-                  <button
+                  {/* <button
                     className="mt-3 text-xs font-semibold text-sky-600"
                     onClick={() => router.push("/residente/pagos")}
                   >
                     Ver todos mis pagos
-                  </button>
+                  </button> */}
                 </div>
 
                 {/* Pagos pendientes */}
@@ -395,12 +391,12 @@ export default function ResidentDashboardPage() {
                   />
                 ))}
               </div>
-              <button
+              {/* <button
                 className="mt-1 text-xs font-semibold text-sky-600"
                 onClick={() => router.push("/residente/reservas")}
               >
                 Ver todas mis reservas
-              </button>
+              </button> */}
             </div>
           </div>
 
@@ -424,12 +420,12 @@ export default function ResidentDashboardPage() {
                   createdAt={a.creado_en}
                 />
               ))}
-              <button
+              {/* <button
                 className="mt-2 text-xs font-semibold text-sky-600"
                 onClick={() => router.push("/residente/avisos")}
               >
                 Ver todos mis avisos
-              </button>
+              </button> */}
             </div>
           </div>
         </section>
@@ -473,9 +469,9 @@ function ReservationCard({ title, date, status }: ReservationCardProps) {
         <p className="text-xs text-slate-500 mt-1">{date}</p>
         <p className="text-[11px] text-slate-400 mt-1">Estado: {status}</p>
       </div>
-      <button className="mt-3 text-xs font-semibold text-sky-600">
+      {/* <button className="mt-3 text-xs font-semibold text-sky-600">
         Ver detalles
-      </button>
+      </button> */}
     </div>
   );
 }
